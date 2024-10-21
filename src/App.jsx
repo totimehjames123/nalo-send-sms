@@ -16,6 +16,27 @@ function App() {
   const [error, setError] = useState(null);
   const [responseMessage, setResponseMessage] = useState(''); // New state for response message
   const [isSuccess, setIsSuccess] = useState(false); // New state to track success status
+  const [dlrResponse, setDlrResponse] = useState(""); // DLR response
+  const [statusDesc, setStatusDesc] = useState(''); // Status description from WebSocket
+
+  const ws = new WebSocket('ws://localhost:5000'); // Your backend WebSocket URL
+
+  // Connection open
+  ws.onopen = () => {
+    console.log('Connected to WebSocket server');
+  };
+
+  ws.onmessage = (event) => {
+    const data = JSON.parse(event.data);
+    console.log('Message from server:', data);
+    setDlrResponse(event.data);
+    setStatusDesc(data.status_desc); // Extract status_desc from the WebSocket message
+  };
+
+  // Error handling
+  ws.onerror = (error) => {
+    console.error('WebSocket error:', error);
+  };
 
   const handleSendMessage = async (e) => {
     e.preventDefault();
@@ -43,7 +64,7 @@ function App() {
       return;
     }
 
-    const url = import.meta.env.VITE_SMS_URL; // Use environment variable for the URL
+    const url = import.meta.env.VITE_SMS_URL;
     const payload = {
       key: import.meta.env.VITE_SMS_API_KEY,
       msisdn: trimmedPhoneNumber,
@@ -83,6 +104,18 @@ function App() {
     }
   };
 
+  // Function to return the appropriate class based on status_desc
+  const getStatusColor = (statusDesc) => {
+    switch (statusDesc) {
+      case 'DELIVRD':
+        return 'bg-green-500'; // Green for delivered
+      case 'ACK':
+        return 'bg-blue-500'; // Blue for acknowledgment
+      default:
+        return 'bg-red-500'; // Red for others
+    }
+  };
+
   return (
     <div className='h-screen border bg-gray-50'>
       <Toaster /> {/* Include the Toaster component here */}
@@ -108,12 +141,12 @@ function App() {
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
               />
-              {error && <p className='text-red-500 mb-2'>{error}</p>}
-              {responseMessage && (
-                <div className={`p-4 mb-4 rounded-md text-white ${isSuccess ? 'bg-green-500' : 'bg-red-500'}`}>
-                  {responseMessage}
+              {dlrResponse && (
+                <div className={`p-4 mb-4 rounded-md text-white ${getStatusColor(statusDesc)}`}>
+                  {dlrResponse}
                 </div>
               )}
+
               <FormButton
                 title={isLoading ? "Sending..." : `Send`}
                 icon={isLoading ? <FaSpinner className='animate-spin' /> : <FaPaperPlane />}
