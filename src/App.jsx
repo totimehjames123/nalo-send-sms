@@ -73,7 +73,7 @@ function App() {
       setPhoneNumber('');
       setMessage('');
     } catch (error) {
-      setError('Failed to send message. Please try again!');
+      setError('Failed to send message. Please try again.');
       console.error('Error sending message:', error);
       toast.error('Failed to send message. Please try again.');
       setResponseMessage('Failed to send message. Please try again.'); // Set error message
