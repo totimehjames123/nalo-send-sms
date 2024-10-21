@@ -14,14 +14,14 @@ function App() {
   const [phoneNumber, setPhoneNumber] = useState('');
   const [message, setMessage] = useState('');
   const [error, setError] = useState(null);
-  const [responseMessage, setResponseMessage] = useState(''); // New state for response message
-  const [isSuccess, setIsSuccess] = useState(false); // New state to track success status
-  const [dlrResponse, setDlrResponse] = useState(""); // DLR response
-  const [statusDesc, setStatusDesc] = useState(''); // Status description from WebSocket
+  const [responseMessage, setResponseMessage] = useState('');
+  const [isSuccess, setIsSuccess] = useState(false);
+  const [dlrResponse, setDlrResponse] = useState("");
+  const [statusDesc, setStatusDesc] = useState('');
+  const [isDlrLoading, setIsDlrLoading] = useState(false); // New state for DLR loading
 
-  const ws = new WebSocket('ws://localhost:5000'); // Your backend WebSocket URL
+  const ws = new WebSocket('wss://nalo-send-sms-server.onrender.com'); 
 
-  // Connection open
   ws.onopen = () => {
     console.log('Connected to WebSocket server');
   };
@@ -30,10 +30,10 @@ function App() {
     const data = JSON.parse(event.data);
     console.log('Message from server:', data);
     setDlrResponse(event.data);
-    setStatusDesc(data.status_desc); // Extract status_desc from the WebSocket message
+    setStatusDesc(data.status_desc);
+    setIsDlrLoading(false); // Stop showing spinner when DLR is received
   };
 
-  // Error handling
   ws.onerror = (error) => {
     console.error('WebSocket error:', error);
   };
@@ -41,15 +41,13 @@ function App() {
   const handleSendMessage = async (e) => {
     e.preventDefault();
     setIsLoading(true);
-    setError(null); // Reset error state
-    setResponseMessage(''); // Reset response message
-    setIsSuccess(false); // Reset success state
+    setError(null);
+    setResponseMessage('');
+    setIsSuccess(false);
 
-    // Trim values
     const trimmedPhoneNumber = phoneNumber.trim();
     const trimmedMessage = message.trim();
 
-    // Basic validation
     const ghanaPhoneRegex = /^(?:\+233|0)(24|25|26|27|28|29|30|31|32|33|34|35|36|37|38|39|50|51|52|53|54|55|56|57|58|59|60|61|62|63|64|65|66|67|68|69|70|71|72|73|74|75|76|77|78|79|80|81|82|83|84|85|86|87|88|89)\d{7}$/;
 
     if (!trimmedPhoneNumber || !trimmedMessage) {
@@ -69,7 +67,7 @@ function App() {
       key: import.meta.env.VITE_SMS_API_KEY,
       msisdn: trimmedPhoneNumber,
       message: trimmedMessage,
-      callback_url: 'https://2645-154-160-0-198.ngrok-free.app/',
+      callback_url: 'https://nalo-send-sms-server.onrender.com/',
       sender_id: 'Test',
     };
 
@@ -80,45 +78,44 @@ function App() {
         },
       });
 
-      if (response.data.status === '1701') { // Ensure you're checking the correct response property
+      if (response.data.status === '1701') {
         toast.success('Message sent successfully!');
-        setResponseMessage('Message sent successfully!'); // Set success message
-        setIsSuccess(true); // Set success state
+        setResponseMessage('Message sent successfully!');
+        setIsSuccess(true);
+        setIsDlrLoading(true); // Start showing spinner after message is sent
       } else {
         toast.error("Couldn't send message!");
-        setResponseMessage("Couldn't send message !"); // Set error message
-        setIsSuccess(false); // Set success state to false
+        setResponseMessage("Couldn't send message !");
+        setIsSuccess(false);
       }
 
-      // Reset fields after successful send
       setPhoneNumber('');
       setMessage('');
     } catch (error) {
       setError('Failed to send message. Please try again.');
       console.error('Error sending message:', error);
       toast.error('Failed to send message. Please try again.');
-      setResponseMessage('Failed to send message. Please try again.'); // Set error message
-      setIsSuccess(false); // Set success state to false
+      setResponseMessage('Failed to send message. Please try again.');
+      setIsSuccess(false);
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Function to return the appropriate class based on status_desc
   const getStatusColor = (statusDesc) => {
     switch (statusDesc) {
       case 'DELIVRD':
-        return 'bg-green-500'; // Green for delivered
-      case 'ACK':
-        return 'bg-blue-500'; // Blue for acknowledgment
+        return 'bg-green-500';
+      case 'ACK/':
+        return 'bg-blue-500';
       default:
-        return 'bg-red-500'; // Red for others
+        return 'bg-red-500';
     }
   };
 
   return (
     <div className='h-screen border bg-gray-50'>
-      <Toaster /> {/* Include the Toaster component here */}
+      <Toaster />
       <div>
         <TopNavbar />
         <div className='flex items-center'>
@@ -141,10 +138,17 @@ function App() {
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
               />
-              {dlrResponse && (
-                <div className={`p-4 mb-4 rounded-md text-white ${getStatusColor(statusDesc)}`}>
-                  {dlrResponse}
+              {isDlrLoading ? (
+                <div className="flex items-center justify-center">
+                  <FaSpinner className="animate-spin text-blue-500" size={24} />
+                  <span className="ml-2">Waiting for delivery response...</span>
                 </div>
+              ) : (
+                dlrResponse && (
+                  <div className={`p-4 mb-4 rounded-md text-white ${getStatusColor(statusDesc)}`}>
+                    {dlrResponse}
+                  </div>
+                )
               )}
 
               <FormButton
