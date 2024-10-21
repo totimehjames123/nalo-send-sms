@@ -48,7 +48,7 @@ function App() {
       key: import.meta.env.VITE_SMS_API_KEY,
       msisdn: trimmedPhoneNumber,
       message: trimmedMessage,
-      callback: 'http://localhost:5000',
+      callback_url: 'http://localhost:5000',
       sender_id: 'Test',
     };
 
@@ -65,7 +65,7 @@ function App() {
         setIsSuccess(true); // Set success state
       } else {
         toast.error("Couldn't send message!");
-        setResponseMessage("Couldn't send message!"); // Set error message
+        setResponseMessage("Couldn't send message !"); // Set error message
         setIsSuccess(false); // Set success state to false
       }
 
