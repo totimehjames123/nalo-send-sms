@@ -7,7 +7,7 @@ const app = express();
 // Middleware
 // app.use(cors()); // Enable CORS
 app.use(cors({
-  origin: 'http://localhost:5173', // Allow requests from your React app
+  origin: 'https://nalo-send-sms-server.onrender.com', // Allow requests from your React app
   credentials: true
 })); 
 
