@@ -8,8 +8,8 @@ app.use(cors()); // Enable CORS
 app.use(express.json()); // Middleware to parse JSON bodies
 
 // POST request route
-app.get('/', (req, res) => {
-    console.log("someserver" + req.body)
+app.post('/', (req, res) => {
+  console.log(req.body)
   res.send('Hello World'); // Respond with 'Hello World'
 });
 

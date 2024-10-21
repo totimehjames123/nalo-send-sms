@@ -48,7 +48,7 @@ function App() {
       key: import.meta.env.VITE_SMS_API_KEY,
       msisdn: trimmedPhoneNumber,
       message: trimmedMessage,
-      callback_url: 'http://localhost:5000',
+      callback_url: 'https://2645-154-160-0-198.ngrok-free.app/',
       sender_id: 'Test',
     };
 
@@ -73,7 +73,7 @@ function App() {
       setPhoneNumber('');
       setMessage('');
     } catch (error) {
-      setError('Failed to send message. Please try again.');
+      setError('Failed to send message. Please try again!');
       console.error('Error sending message:', error);
       toast.error('Failed to send message. Please try again.');
       setResponseMessage('Failed to send message. Please try again.'); // Set error message
