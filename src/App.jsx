@@ -16,9 +16,11 @@ function App() {
   const [error, setError] = useState(null);
   const [responseMessage, setResponseMessage] = useState('');
   const [isSuccess, setIsSuccess] = useState(false);
-  const [dlrResponse, setDlrResponse] = useState("");
+  const [dlrResponse, setDlrResponse] = useState([]);
   const [statusDesc, setStatusDesc] = useState('');
   const [isDlrLoading, setIsDlrLoading] = useState(false); // New state for DLR loading
+  const [tableData, setTableData] = useState([])
+  
 
   const ws = new WebSocket('wss://nalo-send-sms-server.onrender.com'); 
 
@@ -29,10 +31,24 @@ function App() {
   ws.onmessage = (event) => {
     const data = JSON.parse(event.data);
     console.log('Message from server:', data);
-    setDlrResponse(event.data);
     setStatusDesc(data.status_desc);
+  
+    // Update or add the DLR data
+    setDlrResponse((prevState) => {
+      const existingIndex = prevState.findIndex(dlr => dlr.destination === data.destination);
+      if (existingIndex !== -1) {
+        // Replace the existing record with the new status
+        const updatedState = [...prevState];
+        updatedState[existingIndex] = data;
+        return updatedState;
+      } else {
+        // Append the new status if it's not already in the list
+        return [...prevState, data];
+      }
+    });
     setIsDlrLoading(false); // Stop showing spinner when DLR is received
   };
+  
 
   ws.onerror = (error) => {
     console.error('WebSocket error:', error);
@@ -114,12 +130,12 @@ function App() {
   };
 
   return (
-    <div className='h-screen border bg-gray-50'>
+    <div className='h-screen border overflow-x-hidden max-w-full bg-gray-50'>
       <Toaster />
       <div>
         <TopNavbar />
-        <div className='flex items-center'>
-          <div className='w-1/2 flex justify-center'>
+        <div className='lg:flex block items-center'>
+          <div className='lg:w-1/2 w-full p-4 flex justify-center'>
             <form onSubmit={handleSendMessage}>
               <FormTitle title={'Welcome to SMS Send.'} description={'Kindly provide your recipient\'s phone number, a message and hit send.'} />
               <br />
@@ -139,25 +155,54 @@ function App() {
                 onChange={(e) => setMessage(e.target.value)}
               />
               {isDlrLoading ? (
-                <div className="flex items-center justify-center">
+                <div className="flex items-center justify-center gap-2 p-2">
                   <FaSpinner className="animate-spin text-blue-500" size={24} />
-                  <span className="ml-2">Waiting for delivery response...</span>
+                  <span className="ml-2 text-blue-500">Waiting for delivery report...</span>
                 </div>
               ) : (
-                dlrResponse && (
-                  <div className={`p-4 mb-4 rounded-md text-white ${getStatusColor(statusDesc)}`}>
-                    {dlrResponse}
+                dlrResponse.length > 0 && (
+                  <div className="overflow-x-auto w-full"> {/* Overflow scrolling only for the table */}
+                    <table className="w-full min-w-full table-auto bg-white shadow-md rounded-md">
+                      <thead>
+                        <tr className="bg-gray-200 text-gray-700">
+                          <th className="px-4 py-2">Source</th>
+                          <th className="px-4 py-2">Destination</th>
+                          <th className="px-4 py-2">Timestamp</th>
+                          <th className="px-4 py-2">Status</th>
+                          <th className="px-4 py-2">Submit Date</th>
+                          <th className="px-4 py-2">Delivery Date</th>
+                          <th className="px-4 py-2">Network</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {dlrResponse.map((dlr, index) => (
+                          <tr key={index} className="border-t">
+                            <td className="px-4 py-2">{dlr.source}</td>
+                            <td className="px-4 py-2">{dlr.destination}</td>
+                            <td className="px-4 py-2">{dlr.timestamp}</td>
+                            <td className={`px-4 py-2`}>
+                              <span className={`${getStatusColor(dlr.status_desc)} rounded-lg text-white px-2`}>{dlr.status_desc}</span>
+                            </td>
+                            <td className="px-4 py-2">{dlr.submit_date}</td>
+                            <td className="px-4 py-2">{dlr.deliv_date}</td>
+                            <td className="px-4 py-2">{dlr.network}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
                   </div>
                 )
               )}
 
+
+              <br />
               <FormButton
                 title={isLoading ? "Sending..." : `Send`}
                 icon={isLoading ? <FaSpinner className='animate-spin' /> : <FaPaperPlane />}
               />
             </form>
           </div>
-          <img className='w-1/2 h-[90vh] m-2 rounded-lg border' src='image.png' alt='SMS illustration' />
+          <img className='w-1/2 h-[90vh] m-2 hidden lg:block rounded-lg border' src='image.png' alt='SMS illustration' />
         </div>
       </div>
     </div>
